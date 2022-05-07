@@ -87,12 +87,7 @@ int main(int, char *[]) {
         int,
         float,
         std::less<int>,
-        logging_allocator<
-            std::pair<
-                const int, float
-            >
-        >
-    >{};
+        logging_allocator<std::pair<const int, float>>>{};
 
     for (int i = 0; i < 1; ++i) {
         m[i] = static_cast<float>(i);

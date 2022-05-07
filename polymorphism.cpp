@@ -45,6 +45,7 @@ int main() {
     // Compile error
     // check_classic_polymorphism(other);
     check_template_polymorphism(other);
+    std::cout << "AAAA" << std::endl;
 
     return 0;
 }

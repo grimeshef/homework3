@@ -1,13 +1,17 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.19.0)
 
-project(06.allocator)
+set(PATCH_VERSION "1" CACHE INTERNAL "Patch version")
+set(PROJECT_VERSION 0.0.${PATCH_VERSION})
+set(TARGET "homework3")
 
-add_executable(logging_allocator logging_allocator.cpp)
-set_target_properties(logging_allocator PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
+project(${TARGET} VERSION ${PROJECT_VERSION})
 
-add_executable(allocator_traits allocator_traits.cpp)
-set_target_properties(allocator_traits PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/hard_memory_allocator)
 
-add_executable(polymorphism polymorphism.cpp)
-set_target_properties(polymorphism PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+add_executable(${TARGET}_cli main.cpp)
 
+target_link_libraries(${TARGET}_cli hard_memory_allocator_lib)
+set_target_properties(${TARGET}_cli PROPERTIES
+        CXX_STANDARD 14
+        CXX_STANDARD_REQUIRED ON
+        )

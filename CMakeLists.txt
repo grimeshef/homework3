@@ -8,7 +8,7 @@ project(${TARGET} VERSION ${PROJECT_VERSION})
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/hard_memory_allocator)
 
-add_executable(${TARGET}_cli main.cpp)
+add_executable(${TARGET}_cli main.cpp container/src/container.cpp container/include/container.h)
 
 target_link_libraries(${TARGET}_cli hard_memory_allocator_lib)
 set_target_properties(${TARGET}_cli PROPERTIES

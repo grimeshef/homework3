@@ -19,15 +19,9 @@ int main (int, char *[]) {
 //    my_cont.push_back(90);
 //    my_cont.push_back(100);
 
-int a ;
-    int _array[10];
     for (int i = 0; i<my_cont.get_size(); i++) {
-        _array[i] = my_cont[i];
-       a = my_cont[i];
+        std::cout << my_cont[i] << std::endl;
     }
-    std::cout << a << std::endl;
-    std::cout << "////////////////" << std::endl;
-    std::cout << _array << std::endl;
 
 //    decltype(my_cont) my_cont1(my_cont);
 //    std::cout << "////////////////" << std::endl;

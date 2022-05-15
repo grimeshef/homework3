@@ -1,9 +1,9 @@
 #pragma once
 
-#include "vector"
+#include "cstring"
 #include "iostream"
 
-template <typename T, const std::size_t size_of_container, bool auto_increase_size = false>
+template <typename T, const std::size_t size_of_container, bool auto_increase_size = false, bool deallocate_all_memory_in_one_time = false>
 struct hard_memory_allocator {
     using value_type = T;
     using pointer = T*;
@@ -11,70 +11,86 @@ struct hard_memory_allocator {
     using reference = T&;
     using const_reference = const T&;
 
-    std::vector<void*> list_of_memory;
-    int current_element;
-    int current_memory_pack;
+    void* ptr;
+    int current_element{};
+    int current_memory_pack{};
+    int size_of_container_local;
 
     template<typename U>
     struct rebind {
-        using other = hard_memory_allocator<U, size_of_container, auto_increase_size>;
+        using other = hard_memory_allocator<U, size_of_container, auto_increase_size, deallocate_all_memory_in_one_time>;
     };
 
-    hard_memory_allocator() :
-        current_element{0},
-        current_memory_pack{0}
+    hard_memory_allocator()
     {
-        list_of_memory.reserve(5);
-        auto ptr = std::malloc(size_of_container * sizeof(T));
-        list_of_memory.push_back(ptr);
+        current_element = 0;
+        current_memory_pack = 1;
+        ptr = std::malloc(size_of_container * sizeof(T));
+        size_of_container_local = size_of_container;
     }
     ~hard_memory_allocator() = default;
 
     template<typename U>
-    explicit hard_memory_allocator(const hard_memory_allocator<U, size_of_container, auto_increase_size>&){}
+    hard_memory_allocator(const hard_memory_allocator<U, size_of_container, auto_increase_size, deallocate_all_memory_in_one_time>&){}
 
     T *allocate(std::size_t n) {
-        if (!list_of_memory[current_memory_pack])
+
+        if (!ptr)
             throw std::bad_alloc();
+
         if (auto_increase_size && (current_element > size_of_container - 1)) {
             current_element = 0;
             ++current_memory_pack;
-            auto ptr = std::malloc(size_of_container * sizeof(T));
-            list_of_memory.push_back(ptr);
+            auto new_ptr = ptr;
+            ptr = std::malloc(size_of_container * sizeof(T)*current_memory_pack);
+            if (!(new_ptr && ptr))
+                throw std::bad_alloc();
+            memcpy(ptr, new_ptr, size_of_container * sizeof(T)*(current_memory_pack -1));
         }
         else if (current_element > size_of_container - 1) {
-            deallocate(nullptr, 0);
+            std::free(ptr);
             throw std::out_of_range("you should to increase size of container");
         }
-        std::cout << __PRETTY_FUNCTION__ << "[n = " << n << "]" << std::endl;
-        auto _ptr = reinterpret_cast<T *>(list_of_memory[current_memory_pack]) + sizeof(T) * current_element;
-        std::cout << _ptr << std::endl;
+        const auto _ptr = reinterpret_cast<T *>(ptr) + sizeof(T) * current_element;
         ++current_element;
         return _ptr;
     }
 
     void deallocate(T *p, std::size_t n) {
-        std::cout << __PRETTY_FUNCTION__ << "[n = " << n << "]" << std::endl;
-        if (!list_of_memory.empty()) {
-            for (auto &current_pack: list_of_memory) {
-                std::cout << current_pack << std::endl;
-                if (current_pack) {
-                    std::free(current_pack);
-                    current_pack = nullptr;
-                }
+        if (!deallocate_all_memory_in_one_time) {
+            if (p != nullptr) {
+//                std::free(p);
+                p = nullptr;
             }
-            list_of_memory.clear();
+        }
+        else if (ptr != nullptr) {
+            std::free(ptr);
+            ptr = nullptr;
         }
     }
 
     template<typename U, typename ...Args>
     void construct(U *p, Args &&...args) {
-        std::cout << __PRETTY_FUNCTION__ << std::endl;
         new(p) U(std::forward<Args>(args)...);
-    };
+    }
 
     void destroy(T *p) {
-        std::cout << __PRETTY_FUNCTION__ << std::endl;
         p->~T();
     }
+
+
+    hard_memory_allocator& operator=(const hard_memory_allocator &alloc) {
+        if (this->ptr)
+            std::free(this->ptr);
+        this->size_of_container_local = alloc.size_of_container_local;
+        this->current_memory_pack = alloc.current_memory_pack;
+        this->ptr = std::malloc(size_of_container * sizeof(T)*current_memory_pack);
+        this->current_element = alloc.current_element;
+        if (!ptr)
+            throw std::bad_alloc();
+        memcpy(ptr, alloc.ptr, size_of_container_local * sizeof(T)*current_memory_pack);
+        return *this;
+    }
+
+    T* get_last_element_ptr() {return reinterpret_cast<T *>(ptr)+ sizeof(T) * ((current_element - 1) + (current_memory_pack - 1) * size_of_container_local);}
 };

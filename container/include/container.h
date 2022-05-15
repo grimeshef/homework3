@@ -11,26 +11,17 @@ public:
         :
         _size(0)
     {
-        _list_of_ptr.reserve(5);
     }
 
     ~Stack()
     {
-        if (!_list_of_ptr.empty()) {
-            for (auto &current_element: _list_of_ptr) {
-                _alloc.destroy(current_element);
-                _alloc.deallocate(current_element, sizeof(T));
-            }
-            _list_of_ptr.clear();
-            _size = 0;
-        }
+        _deinit();
     }
 
     void push_back(const T &element)
     {
-        auto _ptr = _alloc.allocate(1);
-        _list_of_ptr.push_back(_ptr);
-        _alloc.construct(_ptr, element);
+        ptr = _alloc.allocate(1);
+        _alloc.construct(ptr, element);
         ++_size;
     }
 
@@ -39,11 +30,7 @@ public:
         if (_size == 0)
             throw std::out_of_range("No elements in stack");
         --_size;
-        auto top_element = std::move(*_list_of_ptr[_size]);
-        _alloc.destroy(_list_of_ptr[_size]);
-        _alloc.deallocate(_list_of_ptr[_size], sizeof(T));
-        _list_of_ptr.pop_back();
-        return top_element;
+        return std::move(*(ptr));
     }
 
     int get_size()
@@ -51,32 +38,42 @@ public:
         return _size;
     }
 
-    Stack(const Stack<T> &container)
+    Stack(const Stack &container)
     {
-        for (const auto &current_ptr : container._list_of_ptr) {
-            this->push_back(*current_ptr);
-        }
+        this->_size = container._size;
+        this->_alloc = container._alloc;
+        this->ptr = this->_alloc.get_last_element_ptr();
     }
 
-    Stack operator=(const Stack<T> &container)
+    Stack& operator=(const Stack &container)
     {
-        this->_list_of_ptr.clear();
-        for (const auto &current_ptr : container._list_of_ptr) {
-            this->push_back(*current_ptr);
-        }
-        return container;
+        this->_deinit();
+        this->_alloc = container._alloc;
+        this->_size = container._size;
+        this->ptr = this->_alloc.get_last_element_ptr();
+        return *this;
     }
 
     T operator[](const int index)
     {
         if (index >= _size)
             throw std::out_of_range("out of Stack");
-        return *_list_of_ptr[index];
+        return *(ptr - sizeof(T)*(_size - index - 1));
     }
 
 
 private:
-    int _size;
-    std::vector<T *> _list_of_ptr;
+    int _size{};
     alloc _alloc;
+    T* ptr;
+    void _deinit() {
+        if (ptr != nullptr) {
+            for (int i = 0; i <= _size; i++) {
+                _alloc.destroy(ptr - sizeof(T)*(_size - i));
+                _alloc.deallocate(ptr - sizeof(T)*(_size - i), sizeof(T));
+            }
+            ptr = nullptr;
+            _size = 0;
+        }
+    }
 };
